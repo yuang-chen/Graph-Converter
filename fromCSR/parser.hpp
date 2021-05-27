@@ -47,12 +47,8 @@ bool parseGraph(std::string filename, Graph& graph) {
     return true;
 };
 
-bool writeEdgelist(std::string filename, Graph& graph, Format format) {
-    std::ofstream output;
-    if(format == edgelist_txt)
-        output.open(filename);
-    else
-        output.open(filename, std::ios::binary);
+bool writeEdgelist(std::string filename, Graph& graph) {
+    std::ofstream output(filename);
 
     if(!output.is_open()) {
         std::cout << "cannot open the output file!" << std::endl;
@@ -67,12 +63,25 @@ bool writeEdgelist(std::string filename, Graph& graph, Format format) {
     std::cout << "the format of graph is been converted from CSR to Edgelist and stored in file: " << filename << std::endl;
 }
 
-bool writeAdj(std::string filename, Graph& graph, Format format) {
-    std::ofstream output;
-    if(format == edgelist_txt)
-        output.open(filename);
-    else
-        output.open(filename, std::ios::binary);
+void writeEdgelistBin(std::string filename, Graph& graph) {
+    FILE* fp = fopen(filename.c_str(), "wb");
+    if (fp == NULL)
+    {
+        fputs("file error", stderr);
+        return;
+    }
+    for(unsigned i = 0; i < graph.num_vertex; i++) {
+        for(unsigned j = graph.row_index[i]; j < graph.row_index[i+1]; j++) {
+            fwrite(&i, sizeof(unsigned), 1, fp); 
+            fwrite(graph.col_index.data()+j, sizeof(unsigned), 1, fp); 
+        }
+    }
+
+    fclose(fp);
+}
+
+bool writeAdj(std::string filename, Graph& graph) {
+    std::ofstream output(filename);
 
     if(!output.is_open()) {
         std::cout << "cannot open the output file!" << std::endl;
@@ -114,12 +123,16 @@ bool writeCSR(std::string filename, Graph& graph) {
 void writeGraph(std::string filename, Graph& graph, Format format) {
     switch(format) {
         case Format::edgelist_txt:
+            writeEdgelist(filename, graph);
+            break;
         case Format::edgelist_binary:
-            writeEdgelist(filename, graph, format);
+            writeEdgelistBin(filename, graph);
             break;
         case Format::adjacency_txt:
+            writeAdj(filename, graph);
+            break;
         case Format::adjacency_binary:
-            writeAdj(filename, graph, format);
+            std::cout << "adj. format is NOT implemented!" << std::endl;
             break;
         default:
             std::cout << "choose your output format!" << std::endl;
