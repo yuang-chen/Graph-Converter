@@ -1,0 +1,13 @@
+##graph format convertor
+
+Input: binary CSR file
+
+Output: or text Edgelist, or text CSR (Adjacency)
+
+Adjacency is nothing but the CSR in text format
+
+Usage: ./convertor <binary_csr_file> <text_output_file> <format_option>
+
+Format_option:
+ 0--text edgelist, 1--binary edgelist,
+ 2--text adjacency, 3--binary adjacency"
