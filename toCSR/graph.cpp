@@ -1,5 +1,5 @@
 #include "graph.h"
-
+#include <algorithm>
 ///SORT functions to sort edges on source or destination//
 ///These functions are internal. Not to be exposed outside
 
@@ -204,7 +204,8 @@ void sortEdges(graph* G)
         if (G->VI[i+1] > (G->VI[i]+1))
         {
             if (!G->weighted)
-                mergeSortWOkey<intV>(G->EI, G->VI[i], G->VI[i+1]-1);
+//                mergeSortWOkey<intV>(G->EI, G->VI[i], G->VI[i+1]-1);
+                std::sort(G->EI + G->VI[i], G->EI + G->VI[i+1]-1);
             else
                 mergeSort<intV, unsigned int>(G->EI, G->EW, G->VI[i], G->VI[i+1]-1);
         }

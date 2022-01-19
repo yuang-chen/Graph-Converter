@@ -13,8 +13,8 @@ enum Format {
    // csr = 0,
     edgelist_txt = 0,
     edgelist_binary = 1,
-    adjacency_txt = 2,
-    adjacency_binary = 3
+    adj_txt = 2,
+    mtx_txt = 3
 };
 
 bool parseGraph(std::string filename, Graph& graph) {
@@ -28,6 +28,9 @@ bool parseGraph(std::string filename, Graph& graph) {
     csr_file.read(reinterpret_cast<char*>(&graph.num_vertex), sizeof(unsigned));
     csr_file.read(reinterpret_cast<char*>(&graph.num_edges), sizeof(unsigned));
 
+    std::cout << "num vertex: " << graph.num_vertex << std::endl;
+    std::cout << "num edges: " << graph.num_edges <<std::endl;
+
     std::vector<unsigned> local_row(graph.num_vertex);
     std::vector<unsigned> local_col(graph.num_edges);
 
@@ -38,29 +41,33 @@ bool parseGraph(std::string filename, Graph& graph) {
     graph.row_index = std::move(local_row);
     graph.col_index = std::move(local_col);
 
-#ifdef WEIGHTED
-    std::vector<unsigned> local_wei(graph.num_edges);
-    csr_file.read(reinterpret_cast<char*>(local_wei.data()), graph.num_edges * sizeof(unsigned));
-    graph.edge_weight = std::move(local_wei);
-#endif
+    if(is_weight) {
+        std::vector<unsigned> local_wei(graph.num_edges);
+        csr_file.read(reinterpret_cast<char*>(local_wei.data()), graph.num_edges * sizeof(unsigned));
+        graph.edge_weight = std::move(local_wei);
+    }
+
     csr_file.close();
     return true;
 };
 
-bool writeEdgelist(std::string filename, Graph& graph) {
+void writeEdgelist(std::string filename, Graph& graph) {
     std::ofstream output(filename);
 
     if(!output.is_open()) {
         std::cout << "cannot open the output file!" << std::endl;
-        return false;
+        return;
     }
     for(unsigned i = 0; i < graph.num_vertex; i++) {
         for(unsigned j = graph.row_index[i]; j < graph.row_index[i+1]; j++) {
-            output << i << " " << graph.col_index[j] << '\n';
+            output << i << " " << graph.col_index[j];
+            if(is_weight)
+                output << " " << graph.edge_weight[j];
+            output << '\n';
         }
     }
         output.close();
-    std::cout << "the format of graph is been converted from CSR to Edgelist and stored in file: " << filename << std::endl;
+    std::cout << "the format of graph is been converted from CSR to Edgelist-text and stored in file: " << filename << std::endl;
 }
 
 void writeEdgelistBin(std::string filename, Graph& graph) {
@@ -70,56 +77,68 @@ void writeEdgelistBin(std::string filename, Graph& graph) {
         fputs("file error", stderr);
         return;
     }
+    fwrite(&graph.num_vertex, sizeof(unsigned), 1, fp); 
+    fwrite(&graph.num_edges, sizeof(unsigned), 1, fp); 
+
     for(unsigned i = 0; i < graph.num_vertex; i++) {
         for(unsigned j = graph.row_index[i]; j < graph.row_index[i+1]; j++) {
             fwrite(&i, sizeof(unsigned), 1, fp); 
             fwrite(graph.col_index.data()+j, sizeof(unsigned), 1, fp); 
+            if(is_weight)
+                fwrite(graph.edge_weight.data()+j, sizeof(unsigned), 1, fp); 
         }
     }
-
     fclose(fp);
+    std::cout << "the format of graph is been converted from CSR to Edgelist-bin and stored in file: " << filename << std::endl;
+
 }
 
-bool writeAdj(std::string filename, Graph& graph) {
-    std::ofstream output(filename);
+void writeAdj(std::string filename, Graph& graph) {
+    std::ofstream output;
+    output.open(filename, std::ios::app);
 
     if(!output.is_open()) {
         std::cout << "cannot open the output file!" << std::endl;
-        return false;
+        return;
     }
-    output << "AdjacencyGraph" << '\n';
+    if(is_weight)
+        std::cout << "weighted graph" << '\n';
+    if(is_weight)
+        output << "WeightedAdjacencyGraph" << '\n';
+    else
+        output << "AdjacencyGraph" << '\n';
     output << graph.num_vertex << '\n';
     output << graph.num_edges << '\n';
     for(unsigned i = 0; i < graph.num_vertex; i++)
         output << graph.row_index[i] << '\n';
     for(auto e: graph.col_index)
         output << e << '\n';
-
+    if(is_weight)
+        for(auto w: graph.edge_weight)
+            output << w << '\n';
     output.close();
-    std::cout << "the format of graph is been converted from CSR to Adjacency and stored in file: " << filename << std::endl;
+    std::cout << "the format of graph is been converted from CSR to (Ligra) Adjacency List and stored in file: " << filename << std::endl;
 }
-/*
-bool writeCSR(std::string filename, Graph& graph) {
-    std::ofstream  output_file(filename);
-    if(!output_file.is_open()) {
-        std::cout << "cannot open txt file!" << std::endl;
-        return false;
+
+void writeMtx(std::string filename, Graph& graph) {
+    std::ofstream output(filename);
+
+    if(!output.is_open()) {
+        std::cout << "cannot open the output file!" << std::endl;
+        return;
     }
-    output_file.write(reinterpret_cast<char*>(&graph.num_vertex), sizeof(unsigned));
-    output_file.write(reinterpret_cast<char*>(&graph.num_edges), sizeof(unsigned));
-
-    output_file.write(reinterpret_cast<char*>(graph.row_index.data()), graph.num_vertex * sizeof(unsigned));
-    output_file.write(reinterpret_cast<char*>(graph.col_index.data()), graph.num_edges * sizeof(unsigned));
-
-#ifdef WEIGHTED
-    output_file.write(reinterpret_cast<char*>(graph.edge_weight.data()), graph.num_edges * sizeof(unsigned));
-#endif
-
-    output_file.close();
-    std::cout << "the graph in CSR format is stored in file: " << filename << std::endl;
-
-};*/
-
+    output << graph.num_vertex << " " << graph.num_vertex << " " << graph.num_edges << '\n';
+    for(unsigned i = 0; i < graph.num_vertex; i++) {
+        for(unsigned j = graph.row_index[i]; j < graph.row_index[i+1]; j++) {
+            output << i+1 << " " << graph.col_index[j]+1;
+            if(is_weight)
+                output << " " << graph.edge_weight[j];
+            output << '\n';
+        }
+    }
+        output.close();
+    std::cout << "the format of graph is been converted from CSR to (GraphMat) MTX and stored in file: " << filename << std::endl;
+}
 void writeGraph(std::string filename, Graph& graph, Format format) {
     switch(format) {
         case Format::edgelist_txt:
@@ -128,11 +147,11 @@ void writeGraph(std::string filename, Graph& graph, Format format) {
         case Format::edgelist_binary:
             writeEdgelistBin(filename, graph);
             break;
-        case Format::adjacency_txt:
+        case Format::adj_txt:
             writeAdj(filename, graph);
             break;
-        case Format::adjacency_binary:
-            std::cout << "adj. format is NOT implemented!" << std::endl;
+        case Format::mtx_txt:
+            writeMtx(filename, graph);
             break;
         default:
             std::cout << "choose your output format!" << std::endl;

@@ -8,6 +8,7 @@
 #include <vector>
 #include <cmath>
 
+bool is_weight = false;
 
 unsigned NUM_THREADS = omp_get_max_threads();
 
@@ -19,14 +20,15 @@ public:
     std::vector<unsigned> col_index;
     std::vector<unsigned> out_degree;
     std::vector<float> attr;
-#ifdef WEIGHTED
     std::vector<unsigned> edge_weight;
-#endif
+
     Graph(unsigned num_vertex = 0, unsigned num_edges = 0):
             num_vertex(num_vertex), num_edges(num_edges){
                 row_index.reserve(num_vertex + 1);
                 col_index.reserve(num_edges);
                 attr.reserve(num_vertex);
+                if(is_weight)
+                    edge_weight.reserve(num_edges);
             }
     ~Graph(){}
     
@@ -48,9 +50,9 @@ public:
     void printGraph(bool all = false) {
         std::cout << "num vertex: " << num_vertex << std::endl;
         std::cout << "num edges: " << num_edges <<std::endl;
-        #ifdef WEIGHTED
-        std::cout << "weighted graph" <<std::endl;
-        #endif
+       if(is_weight)
+          std::cout << "weighted graph" <<std::endl;
+  
         if(all) {
             for(auto it = row_index.begin(); it != row_index.end(); ++it) 
                 std::cout << *it << " ";
