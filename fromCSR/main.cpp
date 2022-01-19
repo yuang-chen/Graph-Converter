@@ -5,7 +5,6 @@
 #include <pthread.h>
 #include <time.h>
 #include "graph.hpp"
-#include "parser.hpp"
 
 using namespace std;
 
@@ -15,29 +14,22 @@ using namespace std;
 //////////////////////////////////////////
 int main(int argc, char** argv)
 {
-    if (argc != 5 )
+    if (argc != 4 )
     {
-        cout << "./convert <binary_csr_file> <text_output_file> <format_option> <is_weight?>" << '\n';
-        cout << "format_option: 0--text edgelist, 1--binary edgelist, 2--text adjacency, 3--text mtx" << '\n';
+        cout << "./convert <input_file> <output_file> <is_weight?>" << '\n';
+        cout << "input format: [1] *.csr (GPOP); [2] *.mix (Mixen)" << '\n'; 
+        cout <<  "output format: [1] *.el (text edgelist - Snap) ; [2] *.bel (binary edgelist) ; [3] *.adj (Ligra) ; [4] *.mtx  (GraphMat) ; [5] *.b64 push+pull (Grazelle *must be used with *.mix)" << '\n';
         exit(1);
     }
 
-    string data_file = argv[1];
-    string output = argv[2];
+    string input_file = argv[1];
+    string output_file = argv[2];
     // format = Format::csr;
-    Format format = static_cast<Format>((unsigned int)atoi(argv[3]));
-    if( 1 == (unsigned int)atoi(argv[4]))
-        is_weight = true;
-    Graph graph;
+    bool is_w = false;
+    if( 1 == (unsigned int)atoi(argv[3]))
+        is_w = true;
+    Graph graph(is_w);
 
-    if(!parseGraph(data_file, graph)) {
-        cout << "failed to load the graph" << '\n';
-        return 1;
-    }
-    
-    //////////////////////////////////////////
-    // write csr file
-    //////////////////////////////////////////
-    writeGraph(output, graph, format);
+    graph.convert(input_file, output_file);
     
 }
