@@ -82,7 +82,7 @@ public:
         else if( boost::algorithm::ends_with(out, "bel") )
             assert(writeEdgelistBin(out)==true);
         else if( boost::algorithm::ends_with(out, "adj") )
-            assert(writeEdgelist(out)==true);
+            assert(writeAdj(out)==true);
         else if( boost::algorithm::ends_with(out, "mtx") )
             assert(writeMtx(out)==true);
         else if( boost::algorithm::ends_with(out, "b64") )
@@ -313,8 +313,6 @@ public:
             }
         }
         fclose(fp);
-
-        std::cout << csr_offset64.size() << " " << csr_index64.size() << " " <<  csc_offset64.size() << " " << csc_index64.size() << '\n';
 
         std::cout << "the format of graph is been converted from MIX to B64-push-pull: " << out << std::endl;
 

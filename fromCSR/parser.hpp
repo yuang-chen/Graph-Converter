@@ -9,6 +9,7 @@
 #include <omp.h>
 #include "graph.hpp"
 #include <boost/algorithm/string/predicate.hpp>
+#include <mmio.h>
 
 enum Format {
    // csr = 0,
